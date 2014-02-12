@@ -1,21 +1,24 @@
-package Catalyst::Plugin::Session::Store::CHI;
+package Catalyst::Plugin::Session::Store::CHI::File;
 
-use 5.006;
 use strict;
-use warnings FATAL => 'all';
+use warnings;
+use MRO::Compat;
 
-=head1 NAME
+use base qw( Class::Data::Inheritable Catalyst::Plugin::Session::Store );
 
-Catalyst::Plugin::Session::Store::CHI - Use CHI module to handle storage backend for session data.
 
-=head1 VERSION
-
-Version 0.02
-
-=cut
+use CHI;
+use Path::Class ();
+use File::Spec ();
+use Catalyst::Utils ();
 
 our $VERSION = '0.02';
 
+__PACKAGE__->mk_classdata(qw/_session_chi_file_storage/);
+
+=head1 NAME
+
+Catalyst::Plugin::Session::Store::CHI::File - Use CHI module to handle storage backend for session data.
 
 =head1 SYNOPSIS
 
@@ -28,13 +31,11 @@ our $VERSION = '0.02';
     # ... in an action:
     $c->session->{foo} = 'bar'; # will be saved
 
-
 =head1 DESCRIPTION
 
-C<Catalyst::Plugin::Session::Store::CHI> is an easy to use storage plugin
-for Catalyst that uses a file or mmap'ed file to act as a shared memory interprocess
-cache. It is based on C<CHI>. At this point only file functionality is available via C<Catalyst::Plugin::Session::Store::CHI::File>. This module is expiremental.
-
+C<Catalyst::Plugin::Session::Store::CHI::File> is an easy to use storage plugin
+for Catalyst that uses a file to act as a shared memory interprocess
+cache. It is based on C<CHI>.
 
 =head2 METHODS
 
@@ -53,12 +54,66 @@ L<Catalyst::Plugin::Session::Store>.
 
 =cut
 
+sub get_session_data {
+    my ( $c, $sid ) = @_;
+    $c->_check_session_chi_file_storage; #see?
+    $c->_session_chi_file_storage->get($sid);
+}
+
+sub store_session_data {
+    my ( $c, $sid, $data ) = @_;
+    $c->_check_session_chi_file_storage; #see?
+    $c->_session_chi_file_storage->set( $sid, $data );
+}
+
+sub delete_session_data {
+    my ( $c, $sid ) = @_;
+    $c->_check_session_chi_file_storage; #see?
+    $c->_session_chi_file_storage->remove($sid);
+}
+
+sub delete_expired_sessions { } # unsupported
 
 =item setup_session
 
 Sets up the session cache file.
 
 =cut
+
+sub setup_session {
+    my $c = shift;
+
+    $c->maybe::next::method(@_);
+}
+
+sub _check_session_chi_file_storage {
+    my $c = shift;
+    return if $c->_session_chi_file_storage;
+
+    $c->_session_plugin_config->{namespace} ||= '';
+    my $root = $c->_session_plugin_config->{storage} ||=
+      File::Spec->catdir( Catalyst::Utils::class2tempdir(ref $c),
+        "session", "data", );
+
+    $root = $c->path_to($root) if $c->_session_plugin_config->{relative};
+
+    Path::Class::dir($root)->mkpath;
+
+    my $cfg = $c->_session_plugin_config;
+    $c->_session_chi_file_storage(
+        CHI->new(
+        driver         => 'File',
+            
+                root_dir  => $cfg->{storage},
+                (
+                    map { $_ => $cfg->{$_} }
+                      grep { exists $cfg->{$_} }
+                      qw/namespace depth directory_umask/
+                ),
+            
+        )
+    );
+}
 
 =back
 
@@ -106,11 +161,9 @@ to '000' unless explicitly set.
 
 =back
 
-
 =head1 SEE ALSO
 
 L<Catalyst>, L<Catalyst::Plugin::Session>, L<CHI>.
-
 
 =head1 AUTHOR
 

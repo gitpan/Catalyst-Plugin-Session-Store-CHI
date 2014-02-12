@@ -3,7 +3,7 @@ NAME
     backend for session data.
 
 VERSION
-    Version 0.01
+    Version 0.02
 
 SYNOPSIS
         use Catalyst qw/Session Session::Store::CHI::File Session::State::Foo/;

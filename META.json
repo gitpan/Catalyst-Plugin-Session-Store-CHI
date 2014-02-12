@@ -38,7 +38,11 @@
    "provides" : {
       "Catalyst::Plugin::Session::Store::CHI" : {
          "file" : "lib/Catalyst/Plugin/Session/Store/CHI.pm",
-         "version" : "0.01"
+         "version" : "0.02"
+      },
+      "Catalyst::Plugin::Session::Store::CHI::File" : {
+         "file" : "lib/Catalyst/Plugin/Session/Store/CHI/File.pm",
+         "version" : "0.02"
       }
    },
    "release_status" : "stable",
@@ -47,5 +51,5 @@
          "http://www.perlfoundation.org/artistic_license_2_0"
       ]
    },
-   "version" : "0.01"
+   "version" : "0.02"
 }
